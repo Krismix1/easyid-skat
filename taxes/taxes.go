@@ -2,13 +2,15 @@ package taxes
 
 import (
 	"database/sql"
+	"encoding/xml"
 	"log"
 	"strings"
 )
 
 // Tax holds information about taxes of a user
 type Tax struct {
-	Amount float32
+	XMLName xml.Name `xml:"tax"`
+	Amount  float32  `xml:"amount"`
 }
 
 // ForUser returns taxes information about a user based on the user email.

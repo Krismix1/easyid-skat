@@ -8,5 +8,41 @@
 </head>
 <body>
     Welcome to this amazing tax app!
+    <div id="app">
+    </div>
+    <script>
+        window.onload = function () {
+            const urlParams = new URLSearchParams(window.location.search)
+            const token = urlParams.get('token')
+            if (token) {
+                fetch('http://localhost:10000/account', {
+                    cache: 'no-cache',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        return Promise.reject(res.json())
+                    }
+                    return res.text()
+                })
+                .then(res => {
+                    parser = new DOMParser();
+                    xmlDoc = parser.parseFromString(res, 'application/xml');
+                    return xmlDoc
+                })
+                .then(data => {
+                    const tax = data.getElementsByTagName('tax')[0]
+                    const amount = tax.getElementsByTagName('amount')[0].innerHTML
+                    document.getElementById('app').innerHTML = `You have ${amount} in taxes`
+                })
+                .catch(err => console.log('Some error occured while getting account info:', err))
+            } else {
+                document.getElementById('app').innerHTML = '<h1>You need to login to see this page</h1>' +
+                    'Navigate to <a href="/login">login</a> page'
+            }
+        }
+    </script>
 </body>
 </html>

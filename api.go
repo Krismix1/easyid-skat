@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/Krismix1/easyid-skat/auth"
 	"github.com/Krismix1/easyid-skat/taxes"
 	"github.com/gorilla/mux"
 
@@ -35,6 +36,27 @@ func sendErrorRes(w http.ResponseWriter, status int, msg string) (int, error) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return w.Write(resBytes)
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	body := auth.LoginRequest{
+		SuccessURL: "http://localhost:10000/taxes",
+		CancelURL:  "http://localhost:10000/cancel",
+	}
+	res, err := auth.CreateLogin(body)
+	if err != nil {
+		printError(err)
+		sendErrorRes(w, 500, "Failed to create login request")
+		return
+	}
+
+	w.Header().Set("Location", res.RedirectURL)
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(301)
+}
+
+func cancelLoginHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "<h1>You failed to login</h1>")
 }
 
 func getAccountInfo(keyPath string) func(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +109,7 @@ func getAccountInfo(keyPath string) func(w http.ResponseWriter, r *http.Request)
 
 func fileHandler(path string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cache-Control", "no-store")
 		http.ServeFile(w, r, path)
 	}
 }
@@ -98,7 +121,9 @@ func handleRequests() {
 	router.HandleFunc("/", fileHandler(filepath.Join("static", "index.html"))).Methods("GET")
 	router.HandleFunc("/taxes", fileHandler(filepath.Join("static", "taxes.html"))).Methods("GET")
 	// REST API
+	router.HandleFunc("/login", loginHandler).Methods("GET")
 	router.HandleFunc("/account", getAccountInfo("jwtRS256.key.pub")).Methods("GET")
+	router.HandleFunc("/cancel", cancelLoginHandler).Methods("GET")
 	log.Fatal(http.ListenAndServe(":10000", router))
 }
 
