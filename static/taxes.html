@@ -7,8 +7,8 @@
     <title>Taxes</title>
 </head>
 <body>
-    Welcome to this amazing tax app!
     <div id="app">
+        Welcome to this amazing tax app!
     </div>
     <script>
         window.onload = function () {
@@ -35,12 +35,12 @@
                 .then(data => {
                     const tax = data.getElementsByTagName('tax')[0]
                     const amount = tax.getElementsByTagName('amount')[0].innerHTML
-                    document.getElementById('app').innerHTML = `You have ${amount} in taxes`
+                    document.getElementById('app').innerHTML = `<h3>You have ${amount} in taxes</h3>`
                 })
                 .catch(err => console.log('Some error occured while getting account info:', err))
             } else {
                 document.getElementById('app').innerHTML = '<h1>You need to login to see this page</h1>' +
-                    'Navigate to <a href="/login">login</a> page'
+                    'Navigate to <a href="/login">login</a> page!'
             }
         }
     </script>

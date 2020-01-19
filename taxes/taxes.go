@@ -9,7 +9,7 @@ import (
 
 // Tax holds information about taxes of a user
 type Tax struct {
-	XMLName xml.Name `xml:"tax"`
+	XMLName xml.Name `xml:"tax"` // https://github.com/golang/go/issues/9519
 	Amount  float32  `xml:"amount"`
 }
 
