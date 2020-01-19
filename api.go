@@ -3,32 +3,26 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"strings"
 
+	"github.com/Krismix1/easyid-skat/taxes"
 	"github.com/gorilla/mux"
 
 	jose "github.com/dvsekhvalnov/jose2go"
 	Rsa "github.com/dvsekhvalnov/jose2go/keys/rsa"
+	_ "github.com/mattn/go-sqlite3"
 )
-
-type taxAccount struct {
-	Currency string
-	Amount   float32
-}
 
 type jwtClaim struct {
 	Email string
 	Iat   int32
-}
-
-var accounts = map[string]taxAccount{
-	"a@a.com": taxAccount{Currency: "DKK", Amount: 5000},
-	"b@a.com": taxAccount{Currency: "DKK", Amount: 1000},
 }
 
 func printError(err error) {
@@ -38,6 +32,7 @@ func printError(err error) {
 func sendErrorRes(w http.ResponseWriter, status int, msg string) (int, error) {
 	response := map[string]string{"error": msg}
 	resBytes, _ := json.Marshal(response)
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return w.Write(resBytes)
 }
@@ -79,9 +74,10 @@ func getAccountInfo(keyPath string) func(w http.ResponseWriter, r *http.Request)
 		json.Unmarshal([]byte(payload), &jwtPayload)
 		email := jwtPayload.Email
 
-		if account, ok := accounts[email]; ok {
-			accountValue, _ := json.Marshal(account)
-			w.Write(accountValue)
+		if taxInfo, ok := taxes.ForUser(email); ok {
+			taxXML, _ := xml.Marshal(taxInfo)
+			w.Header().Add("Content-Type", "application/xml")
+			w.Write(taxXML)
 			return
 		}
 
@@ -89,10 +85,21 @@ func getAccountInfo(keyPath string) func(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func fileHandler(path string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, path)
+	}
+}
+
 func handleRequests() {
-	myRouter := mux.NewRouter().StrictSlash(true)
-	myRouter.HandleFunc("/account", getAccountInfo("jwtRS256.key.pub")).Methods("GET")
-	log.Fatal(http.ListenAndServe(":10000", myRouter))
+
+	router := mux.NewRouter().StrictSlash(true)
+	// static files
+	router.HandleFunc("/", fileHandler(filepath.Join("static", "index.html"))).Methods("GET")
+	router.HandleFunc("/taxes", fileHandler(filepath.Join("static", "taxes.html"))).Methods("GET")
+	// REST API
+	router.HandleFunc("/account", getAccountInfo("jwtRS256.key.pub")).Methods("GET")
+	log.Fatal(http.ListenAndServe(":10000", router))
 }
 
 func main() {
